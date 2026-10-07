@@ -1,0 +1,29 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared Renovate preset for digital-land. Repos extend this with \"local>digital-land/renovate-config\".",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/London",
+  "schedule": ["before 12pm on monday"],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "dependencyDashboardLabels": ["dependencies"],
+  "dependencyDashboardAutoclose": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 12pm on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group routine updates into one weekly PR. Automerge is off for now.",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "weekly non-major updates"
+    },
+    {
+      "description": "Major upgrades are only listed on the Dependency Dashboard. A PR is created only when someone ticks it there.",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "labels": ["dependencies", "major"]
+    }
+  ]
+}
