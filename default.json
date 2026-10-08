@@ -6,6 +6,7 @@
   "schedule": ["before 12pm on monday"],
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,
+  "prHourlyLimit": 3,
   "labels": ["dependencies"],
   "dependencyDashboardLabels": ["dependencies"],
   "dependencyDashboardAutoclose": true,
