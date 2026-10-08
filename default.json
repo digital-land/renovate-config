@@ -13,17 +13,53 @@
     "enabled": true,
     "schedule": ["before 12pm on monday"]
   },
+  "vulnerabilityAlerts": {
+    "groupName": "security updates",
+    "labels": ["dependencies", "security"]
+  },
   "packageRules": [
     {
-      "description": "Group routine updates into one weekly PR. Automerge is off for now.",
+      "description": "Group routine updates into weekly PRs. Automerge is off for now. Anything not covered by a type below goes here.",
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "weekly non-major updates"
+    },
+    {
+      "description": "One weekly PR per type, so a failure in one doesn't hold up the others.",
+      "matchCategories": ["python"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "weekly Python updates"
+    },
+    {
+      "matchCategories": ["js"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "weekly JavaScript updates"
+    },
+    {
+      "matchCategories": ["ci"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "weekly CI updates"
+    },
+    {
+      "matchCategories": ["docker"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "weekly Docker updates"
     },
     {
       "description": "Major upgrades are only listed on the Dependency Dashboard. A PR is created only when someone ticks it there.",
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true,
       "labels": ["dependencies", "major"]
+    },
+    {
+      "description": "Python itself (Docker images, setup-python): stay on 3.13 or below.",
+      "matchDepNames": ["python"],
+      "allowedVersions": "<3.14"
+    },
+    {
+      "description": "Moving between Python versions also needs runtime files and pip-compile output updating, so only list it on the dashboard.",
+      "matchDepNames": ["python"],
+      "matchUpdateTypes": ["minor", "major"],
+      "dependencyDashboardApproval": true
     }
   ]
 }

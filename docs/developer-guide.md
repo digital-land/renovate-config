@@ -7,9 +7,10 @@ This guide explains how automated dependency updates work across our repositorie
 ## In short
 
 - **Renovate** keeps our dependencies up to date by opening pull requests.
-- Routine **minor and patch** updates arrive **once a week** in a single grouped PR for a developer to review and merge. Nothing merges automatically.
+- Routine **minor and patch** updates arrive **once a week**, with one PR per type (Python, JavaScript, CI, Docker), for a developer to review and merge. Nothing merges automatically.
 - **Major** upgrades are **only listed** on the dashboard. No PR is created until someone on the team ticks one.
-- **Security** fixes arrive as soon as they're found, whatever the schedule.
+- **Security** fixes arrive as soon as they're found, whatever the schedule, grouped into one PR.
+- **Python itself** stays on 3.13 or below. Moving between Python versions is only listed on the dashboard.
 - Each repo has one **Dependency Dashboard** issue that lists everything pending. That issue is the repo's **one card** on the project board(s).
 - When everything pending has been dealt with, the dashboard closes itself and moves to **Done on every board** it's on.
 
@@ -55,11 +56,11 @@ Changes to `default.json` in the central repo apply to every repo on Renovate's 
 | What | When | Notes |
 |---|---|---|
 | Renovate runs | Weekdays at about 06:00, 10:00 and 14:00 UTC | Picks up dashboard checkbox ticks and new security fixes |
-| Weekly minor/patch PR | Monday morning | Grouped into one PR per repo |
+| Weekly minor/patch PRs | Monday morning | One PR per type: Python, JavaScript, CI, Docker |
 | Lock file maintenance PR | Monday morning | Refreshes lockfiles to pick up transitive updates |
 | Major upgrades | Listed on the dashboard as soon as they're found | No PR until someone ticks one; the PR then opens on the next run |
 | Dashboard added to board | At the end of each Renovate run | Only needed once per repo; later runs do nothing |
-| Security updates | Next Renovate run after detection | Not held back by the weekly schedule |
+| Security updates | Next Renovate run after detection | One PR for all fixes; not held back by the weekly schedule |
 
 New releases are only proposed once they're at least **3 days old**. This avoids broken or compromised releases that get pulled shortly after publishing. Renovate also keeps **no more than 5 of its PRs open** at once per repo.
 
@@ -81,27 +82,43 @@ Each pending item has a **checkbox**. Tick it and Renovate will create (or rebas
 
 The dashboard **closes itself when nothing is pending** and reopens when new updates arrive. On the project board, that means the card moves to Done when the repo is up to date and comes back when there's new work. Don't close it by hand, because Renovate will just reopen it.
 
-Major upgrades waiting in "Pending Approval" count as pending, so **the card stays open while majors are available**, even after the weekly PR is merged. That's deliberate: an open card with no weekly PR means "major upgrades to look at". Open the dashboard to see which ones.
+Major upgrades waiting in "Pending Approval" count as pending, so **the card stays open while majors are available**, even after the weekly PRs are merged. That's deliberate: an open card with no weekly PRs means "major upgrades to look at". Open the dashboard to see which ones.
 
-### Weekly non-major PR: "Update weekly non-major updates"
+### Weekly PRs, one per type
 
-All minor and patch updates for the repo, grouped into one PR.
+Minor and patch updates are grouped by type, so a problem in one doesn't hold up the others. Your repo only gets the ones it needs:
 
-- It **does not merge automatically**. Once CI passes, someone on the team should review it and merge it. It's listed on the Dependency Dashboard until it's merged.
-- If CI **fails**, see [When the weekly PR fails](#when-the-weekly-pr-fails).
-- If it isn't merged before the next Monday, Renovate updates the same PR with that week's new updates rather than opening a second one.
+| PR title | Covers |
+|---|---|
+| Update weekly Python updates | Python packages (pip-compile, pip) |
+| Update weekly JavaScript updates | npm packages |
+| Update weekly CI updates | Actions used in `.github/workflows` |
+| Update weekly Docker updates | `Dockerfile` and compose image tags |
+| Update weekly non-major updates | Anything that doesn't fit the types above |
+
+- They **don't merge automatically**. Once CI passes, someone on the team should review and merge each one. They're listed on the Dependency Dashboard until merged.
+- If CI **fails** on one, see [When a weekly PR fails](#when-a-weekly-pr-fails). The others can still be merged.
+- If one isn't merged before the next Monday, Renovate updates the same PR with that week's new updates rather than opening a second one.
 
 ### Lock file maintenance PR
 
-Regenerates lockfiles (`package-lock.json`, pip-compile `requirements.txt` files and so on) so indirect dependencies get updated too. Treat it like the weekly PR.
+Regenerates lockfiles (`package-lock.json`, pip-compile `requirements.txt` files and so on) so indirect dependencies get updated too. Treat it like the weekly PRs.
 
 ### Major upgrades (listed, not created)
 
 Major version bumps **don't open PRs on their own**. They're listed on the Dependency Dashboard under **"Pending Approval"**, each with a checkbox. When the team decides to take one on, tick its box and Renovate opens the PR, labelled `dependencies` and `major`, on its next run. See [Working on a major upgrade](#working-on-a-major-upgrade).
 
-### Security updates
+### Security updates: "Update security updates"
 
-These come from GitHub's Dependabot alerts (alerts only; Dependabot's own update PRs are switched off). Renovate raises them straight away and labels them as security updates. Prioritise them.
+These come from GitHub's Dependabot alerts (alerts only; Dependabot's own update PRs are switched off). Renovate puts every security fix for the repo into **one PR**, labelled `security`, and raises it straight away rather than waiting for Monday. Prioritise it.
+
+- **Each fix moves the package to the lowest version that fixes the vulnerability**, not the latest. Once it's merged, the package goes back into the normal weekly PR, which moves it on to the latest minor or patch.
+- **A package is only ever in one PR.** While it's vulnerable it's in the security PR and left out of the weekly PRs. If both PRs touch the same file, Renovate rebases whichever is merged second.
+- **The security PR can include a major upgrade** if that's the only version with a fix. It doesn't wait for a dashboard tick, so check the release notes before merging.
+
+### Python version (held at 3.13)
+
+Renovate won't propose Python 3.14 or later, in Docker images or in `actions/setup-python`. Moving between Python versions (for example 3.10 to 3.13) is only **listed on the dashboard**, because it also needs `runtime.txt`, CI and pip-compile output updating together. Tick it when you're ready, then make those other changes on the same PR branch. Patch updates within your current version still come through in the weekly PRs.
 
 ---
 
@@ -110,7 +127,7 @@ These come from GitHub's Dependabot alerts (alerts only; Dependabot's own update
 - Each repo has **one card**: its Dependency Dashboard issue. It's added to the **[central dependency maintenance board](https://github.com/orgs/digital-land/projects/44)** and can also be added to **team boards**.
 - An issue can be on **several boards at once**. Each board has its **own Status**, so moving a card on one board doesn't move it on the others.
 - **When the dashboard closes, it moves to Done on every board**, through each project's built-in "Item closed → Done" workflow. When it reopens, the "Item reopened" workflow moves it back to Backlog.
-- **The team's job each week** is to merge the weekly PR (and lock file maintenance PR). Don't close the dashboard or drag the card to Done by hand. The card clears itself on Renovate's next run once nothing is pending.
+- **The team's job each week** is to merge the weekly PRs (and lock file maintenance PR). Don't close the dashboard or drag the card to Done by hand. The card clears itself on Renovate's next run once nothing is pending.
 - In table view, add the **Repository** field and group by it. Every dashboard issue is titled "Dependency Dashboard", so the repository is what tells them apart.
 
 ---
@@ -129,16 +146,16 @@ These come from GitHub's Dependabot alerts (alerts only; Dependabot's own update
 
 ---
 
-## When the weekly PR fails
+## When a weekly PR fails
 
-If the grouped minor/patch PR fails CI:
+If one of the weekly PRs fails CI:
 
 1. Check the failing job to see which update broke it. The PR description lists every package in the group.
 2. Then either:
    - **fix it** by pushing a change to the PR branch, then review and merge it as normal once CI passes, **or**
    - **hold back the problem package** for now with a rule in your repo's `renovate.json` (see below), and raise an issue to deal with it properly.
 
-Until it's fixed, the rest of that week's updates for the repo are held up too, so please don't leave a failing weekly PR open for long.
+Until it's fixed, the rest of that PR's updates are held up too, so please don't leave a failing weekly PR open for long. The other weekly PRs aren't affected.
 
 ---
 
@@ -188,7 +205,7 @@ To keep getting minor and patch updates for a package but stop it listing a new 
 ```
 
 ### Change behaviour for your repo only
-Anything in your repo's `renovate.json` overrides the shared preset. For example, to get the weekly PR on a Wednesday instead:
+Anything in your repo's `renovate.json` overrides the shared preset. For example, to get the weekly PRs on a Wednesday instead:
 
 ```json
 {
@@ -224,14 +241,14 @@ If your repo uses pip-tools, its `renovate.json` needs these settings:
 {
   "extends": ["local>digital-land/renovate-config"],
   "pip-compile": {
-    "managerFilePatterns": ["/(^|/)requirements(-[\\w]+)?\\.txt$/"]
+    "managerFilePatterns": ["/(^|/)[\\w-]*requirements\\.txt$/"]
   },
   "pip_requirements": { "enabled": false },
   "pip_setup": { "enabled": false }
 }
 ```
 
-Change the file pattern if your compiled files are named differently.
+The pattern must match **only the compiled files** (for example `requirements.txt` and `dev-requirements.txt`). If your repo also has plain requirements files that pip-compile didn't generate, narrow it. For example, `local-plans-explorer` keeps its compiled files in a `requirements/` folder and uses `"/^requirements/[\\w-]*requirements\\.txt$/"`. Check the onboarding PR's "Detected Package Files" list shows each compiled file under `pip-compile`.
 
 ---
 
@@ -255,33 +272,16 @@ Change the file pattern if your compiled files are named differently.
 
 ## Shared preset (current)
 
-For reference, this is what `default.json` in `digital-land/renovate-config` sets for every repo:
+The settings every repo starts from are in [`default.json`](https://github.com/digital-land/renovate-config/blob/main/default.json) in `digital-land/renovate-config`. Each setting has a description explaining it. In summary:
 
-```json
-{
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "timezone": "Europe/London",
-  "schedule": ["before 12pm on monday"],
-  "minimumReleaseAge": "3 days",
-  "prConcurrentLimit": 5,
-  "labels": ["dependencies"],
-  "dependencyDashboardLabels": ["dependencies"],
-  "dependencyDashboardAutoclose": true,
-  "lockFileMaintenance": { "enabled": true, "schedule": ["before 12pm on monday"] },
-  "packageRules": [
-    {
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "weekly non-major updates"
-    },
-    {
-      "matchUpdateTypes": ["major"],
-      "dependencyDashboardApproval": true,
-      "labels": ["dependencies", "major"]
-    }
-  ]
-}
-```
+- Renovate's recommended defaults (`config:recommended`), on London time
+- weekly PRs before 12pm on Monday, one per type, plus lock file maintenance
+- new releases only once they're at least 3 days old
+- at most 5 Renovate PRs open per repo at once (security PRs aren't counted)
+- major upgrades, and moving between Python versions, listed on the dashboard only
+- Python held at 3.13 or below
+- all security fixes in one PR, raised straight away
+- a Dependency Dashboard that closes itself when nothing is pending
 
 Automerge is deliberately switched off for now: every Renovate PR needs a developer to review and merge it.
 
