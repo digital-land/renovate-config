@@ -1,3 +1,4 @@
 [
-  { "repo": "digital-land/local-plans-explorer" }
+  { "repo": "digital-land/local-plans-explorer" },
+  { "repo": "digital-land/config-manager", "projects": [15] }
 ]

@@ -74,10 +74,11 @@ jobs:
           # Manual runs can ignore the weekly schedule for this run only.
           RENOVATE_FORCE: ${{ inputs.ignore_schedule && '{"schedule":["at any time"]}' || '{}' }}
 
-      # Put each repo's Dependency Dashboard on the project board, so every
-      # repo has one card. Adding an issue that's already on the board does
-      # nothing, so it's safe to repeat on every run. Runs even if Renovate
-      # reported errors for some repos.
+      # Put each repo's Dependency Dashboard on the central project board, so
+      # every repo has one card, plus any extra boards listed for the repo in
+      # repos.json ("projects": [<project number>, ...]). Adding an issue
+      # that's already on a board does nothing, so it's safe to repeat on
+      # every run. Runs even if Renovate reported errors for some repos.
       - name: Refresh App token
         id: board-token
         if: ${{ !cancelled() && vars.UPGRADES_PROJECT_ID != '' }}
@@ -98,27 +99,53 @@ jobs:
           script: |
             const fs = require('fs');
             const botLogin = process.env.BOT_LOGIN;
-            const projectId = process.env.PROJECT_ID;
+            const centralProjectId = process.env.PROJECT_ID;
 
             const repos = JSON.parse(fs.readFileSync('repos.json', 'utf8'));
 
-            for (const { repo: fullName } of repos) {
+            // repos.json lists extra boards by the number in their URL
+            // (github.com/orgs/<org>/projects/<number>). Look up each one's
+            // ID once per run.
+            const projectIds = new Map();
+            async function projectIdFor(owner, number) {
+              const key = `${owner}/${number}`;
+              if (!projectIds.has(key)) {
+                const res = await github.graphql(
+                  `query($o:String!,$n:Int!){organization(login:$o){projectV2(number:$n){id}}}`,
+                  { o: owner, n: number });
+                projectIds.set(key, res.organization.projectV2.id);
+              }
+              return projectIds.get(key);
+            }
+
+            for (const { repo: fullName, projects = [] } of repos) {
               const [owner, repo] = fullName.split('/');
+              let dashboards;
               try {
                 // Filter on the author here rather than with the API's
                 // "creator" parameter, which doesn't reliably match bots.
                 const issues = await github.paginate(github.rest.issues.listForRepo,
                   { owner, repo, state: 'open', labels: 'dependencies', per_page: 100 });
-
-                for (const i of issues) {
-                  if (i.pull_request || i.user?.login !== botLogin) continue;
-                  if (i.title !== 'Dependency Dashboard') continue;
-                  await github.graphql(
-                    `mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}`,
-                    { p: projectId, c: i.node_id });
-                  core.info(`${fullName}: dashboard #${i.number} on board`);
-                }
+                dashboards = issues.filter((i) => !i.pull_request &&
+                  i.user?.login === botLogin && i.title === 'Dependency Dashboard');
               } catch (err) {
-                core.warning(`${fullName}: could not add dashboard to board: ${err.message}`);
+                core.warning(`${fullName}: could not list issues: ${err.message}`);
+                continue;
+              }
+
+              const boards = [{ label: 'central board', id: () => centralProjectId },
+                ...projects.map((n) => ({ label: `project ${n}`, id: () => projectIdFor(owner, n) }))];
+
+              for (const i of dashboards) {
+                for (const board of boards) {
+                  try {
+                    await github.graphql(
+                      `mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}`,
+                      { p: await board.id(), c: i.node_id });
+                    core.info(`${fullName}: dashboard #${i.number} on ${board.label}`);
+                  } catch (err) {
+                    core.warning(`${fullName}: could not add dashboard to ${board.label}: ${err.message}`);
+                  }
+                }
               }
             }
