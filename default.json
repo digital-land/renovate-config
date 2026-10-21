@@ -3,6 +3,7 @@
   "description": "Shared Renovate preset for digital-land. Repos extend this with \"local>digital-land/renovate-config\".",
   "extends": ["config:recommended"],
   "timezone": "Europe/London",
+  "semanticCommits": "enabled",
   "schedule": ["before 12pm on monday"],
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,

@@ -68,6 +68,17 @@ New releases are only proposed once they're at least **3 days old**. This avoids
 
 ## What you'll see in your repo
 
+### Commit messages and PR titles
+
+Renovate's commits and PR titles use the [Conventional Commits](https://www.conventionalcommits.org/) format, with the scope `deps`:
+
+| Prefix | Used for |
+|---|---|
+| `fix(deps):` | npm runtime `dependencies` |
+| `chore(deps):` | everything else: Python packages, npm dev dependencies, GitHub Actions, Docker images, lock file refreshes |
+
+For example: `chore(deps): update weekly CI updates`. The PR titles in the sections below are shown without this prefix.
+
 ### The Dependency Dashboard (one issue per repo)
 
 Renovate keeps a single issue titled **"Dependency Dashboard"** up to date. It lists:
@@ -303,6 +314,7 @@ The settings every repo starts from are in [`default.json`](https://github.com/d
 - Python held at 3.13 or below
 - security fixes grouped into one PR (plus one for fixes needing a major), raised straight away
 - a Dependency Dashboard that closes itself when nothing is pending
+- Conventional Commits format for commit messages and PR titles (`fix(deps):` / `chore(deps):`)
 
 Automerge is deliberately switched off for now: every Renovate PR needs a developer to review and merge it.
 
