@@ -142,7 +142,7 @@ Renovate won't propose Python 3.14 or later, in Docker images or in `actions/set
 
 ## Project boards
 
-- Each repo has **one card**: its Dependency Dashboard issue. It's added to the **[central dependency maintenance board](https://github.com/orgs/digital-land/projects/44)** and can also be added to **team boards**.
+- Each repo has **one card**: its Dependency Dashboard issue. It's added to the **[central Maintenance board](https://github.com/orgs/digital-land/projects/44)**, and automatically to any **team boards** listed for the repo in `repos.json` in `digital-land/renovate-config` (for example, `config-manager` also goes on Collecting & Managing Data). To add your repo to a team board, open a PR there adding the board's project number.
 - An issue can be on **several boards at once**. Each board has its **own Status**, so moving a card on one board doesn't move it on the others.
 - **When the dashboard closes, it moves to Done on every board**, through each project's built-in "Item closed → Done" workflow. When it reopens, the "Item reopened" workflow moves it back to Backlog.
 - **The team's job each week** is to merge the weekly PRs (and lock file maintenance PR). Don't close the dashboard or drag the card to Done by hand. The card clears itself on Renovate's next run once nothing is pending.

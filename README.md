@@ -38,7 +38,7 @@ Renovate is open source and runs entirely on our GitHub Actions runners. No code
    }
    ```
 3. Renovate opens routine minor/patch updates once a week (Monday morning), with **one PR per type** (Python, JavaScript, CI, Docker), and keeps a **Dependency Dashboard** issue in each repo. **Major upgrades are only listed** on the dashboard; a PR is created only when someone ticks one. **Security fixes** are grouped into one PR per repo (plus a second for any that need a major upgrade) and raised on the next run, whatever the schedule. **Python itself** is held at 3.13 or below.
-4. At the end of each run, `renovate.yml` adds every listed repo's Dependency Dashboard to the [project board](https://github.com/orgs/digital-land/projects/44), so each repo has **one card**. The dashboard closes itself when nothing is pending (moving the card to Done) and reopens when there's new work. This step is skipped if `UPGRADES_PROJECT_ID` isn't set.
+4. At the end of each run, `renovate.yml` adds every listed repo's Dependency Dashboard to the [central Maintenance board](https://github.com/orgs/digital-land/projects/44), plus any team boards listed for it in `repos.json`, so each repo has **one card** per board. The dashboard closes itself when nothing is pending (moving the card to Done) and reopens when there's new work. This step is skipped if `UPGRADES_PROJECT_ID` isn't set.
 5. `test.yml` (the **Test** workflow) runs Renovate's config validator on every pull request to this repo.
 
 **Commit messages and PR titles** use the [Conventional Commits](https://www.conventionalcommits.org/) format (`fix(deps): …` for npm runtime dependencies, `chore(deps): …` for everything else), whatever style the repo itself uses.
@@ -74,6 +74,11 @@ Webhooks are disabled, because Renovate runs on a schedule.
    ```json
    { "repo": "digital-land/<repo-name>" }
    ```
+   Its Dependency Dashboard always goes on the [central Maintenance board](https://github.com/orgs/digital-land/projects/44). To also put it on team boards, add their project numbers (the number at the end of the board's URL):
+   ```json
+   { "repo": "digital-land/<repo-name>", "projects": [15] }
+   ```
+   Each extra board should have its "Item closed" and "Item reopened" workflows switched on, so the card moves to Done and back with the dashboard.
 3. Run the **Renovate** workflow (or wait for the next scheduled run). Renovate opens an onboarding PR in the repo. Review it, add any repo-specific settings (for example for pip-tools; see the developer guide), and merge it.
 
 ### Remove a repo
