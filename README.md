@@ -41,6 +41,8 @@ Renovate is open source and runs entirely on our GitHub Actions runners. No code
 4. At the end of each run, `renovate.yml` adds every listed repo's Dependency Dashboard to the [project board](https://github.com/orgs/digital-land/projects/44), so each repo has **one card**. The dashboard closes itself when nothing is pending (moving the card to Done) and reopens when there's new work. This step is skipped if `UPGRADES_PROJECT_ID` isn't set.
 5. `test.yml` (the **Test** workflow) runs Renovate's config validator on every pull request to this repo.
 
+**Commit messages and PR titles** use the [Conventional Commits](https://www.conventionalcommits.org/) format (`fix(deps): …` for npm runtime dependencies, `chore(deps): …` for everything else), whatever style the repo itself uses.
+
 **Automerge is currently off.** Every Renovate PR needs a developer to review and merge it. We plan to switch it on for minor/patch updates once we're confident in the process.
 
 ## Configuration
