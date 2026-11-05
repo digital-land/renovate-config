@@ -8,9 +8,16 @@ on:
     - cron: "0 6,10,14 * * 1-5"
   workflow_dispatch:
     inputs:
+      # Keep these options in step with repos.json (short names, after "all").
+      # The Test workflow fails if they differ.
       repo:
-        description: "Single repo from repos.json, e.g. digital-land/local-plans-explorer (leave blank for all)"
-        required: false
+        description: "Repo to run"
+        type: choice
+        default: all
+        options:
+          - all
+          - local-plans-explorer
+          - config-manager
       ignore_schedule:
         description: "Create PRs now instead of waiting for Monday"
         type: boolean
@@ -43,19 +50,19 @@ jobs:
           sparse-checkout-cone-mode: false
 
       # Renovate runs only on the repos listed in repos.json. A manual run can
-      # pick one of them, but not a repo that isn't on the list.
+      # pick one of them by its short name, but not a repo that isn't on the list.
       - name: Read repo list
         id: repos
         env:
           ONLY_REPO: ${{ inputs.repo }}
         run: |
           repos=$(jq -c '[.[].repo]' repos.json)
-          if [ -n "$ONLY_REPO" ]; then
-            if ! jq -e --arg r "$ONLY_REPO" 'index($r)' <<<"$repos" >/dev/null; then
+          if [ -n "$ONLY_REPO" ] && [ "$ONLY_REPO" != "all" ]; then
+            repos=$(jq -c --arg r "$ONLY_REPO" 'map(select(split("/")[1] == $r))' <<<"$repos")
+            if [ "$repos" = "[]" ]; then
               echo "::error::$ONLY_REPO is not in repos.json"
               exit 1
             fi
-            repos=$(jq -cn --arg r "$ONLY_REPO" '[$r]')
           fi
           echo "Repos: $repos"
           echo "list=$repos" >> "$GITHUB_OUTPUT"

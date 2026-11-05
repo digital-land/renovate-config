@@ -19,6 +19,14 @@
     "groupName": "security updates",
     "labels": ["dependencies", "security"]
   },
+  "pip-compile": {
+    "description": "Python repos use pip-tools by default: Renovate re-runs the command in each compiled file's header. Files without a pip-compile header are skipped.",
+    "managerFilePatterns": ["/(^|/)[\\w-]*requirements[\\w-]*\\.txt$/"]
+  },
+  "pip_requirements": {
+    "description": "Off so compiled files aren't also edited directly. Repos with plain, hand-written requirements files turn this back on in their own renovate.json.",
+    "enabled": false
+  },
   "packageRules": [
     {
       "description": "Group routine updates into weekly PRs. Automerge is off for now. Anything not covered by a type below goes here.",

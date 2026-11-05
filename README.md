@@ -79,7 +79,9 @@ Webhooks are disabled, because Renovate runs on a schedule.
    { "repo": "digital-land/<repo-name>", "projects": [15] }
    ```
    Each extra board should have its "Item closed" and "Item reopened" workflows switched on, so the card moves to Done and back with the dashboard.
-3. Run the **Renovate** workflow (or wait for the next scheduled run). Renovate opens an onboarding PR in the repo. Review it, add any repo-specific settings (for example for pip-tools; see the developer guide), and merge it.
+
+   In the same PR, add the repo's short name to the `repo` dropdown `options` in `.github/workflows/renovate.yml`. The **Test** workflow fails the PR if the dropdown and `repos.json` don't match.
+3. Run the **Renovate** workflow (or wait for the next scheduled run). Renovate opens an onboarding PR in the repo. Review it, check "Detected Package Files" lists what you expect, add any repo-specific settings (for example for plain requirements files; see the developer guide), and merge it.
 
 ### Remove a repo
 Remove it from `repos.json`. To fully revoke access, also remove the repo from the App installation.
@@ -88,7 +90,7 @@ Remove it from `repos.json`. To fully revoke access, also remove the repo from t
 Edit `default.json` and open a PR. Changes apply to every repo on Renovate's next run. Repos can override anything in their own `renovate.json`.
 
 ### Run Renovate now
-**Actions → Renovate → Run workflow.** Use this after merging config changes, or to onboard a repo straight away. You can enter a single repo from `repos.json` to run just that one, and tick **Create PRs now** to skip the Monday schedule for this run.
+**Actions → Renovate → Run workflow.** Use this after merging config changes, or to onboard a repo straight away. Pick **all** or a single repo from the **Repo to run** dropdown, and tick **Create PRs now** to skip the Monday schedule for this run.
 
 ### Debug a problem
 Open the latest **Renovate** workflow run and search the logs for the repo's name. Renovate processes repos one after another, so each repo's output appears in its own section of the log. Debug logging (`LOG_LEVEL: debug` in `renovate.yml`) is currently on while the setup beds in. Remove it once things are running smoothly, as it makes the public logs much more detailed.
@@ -103,7 +105,7 @@ Open the latest **Renovate** workflow run and search the logs for the repo's nam
 - **Public repo:** this repo is public, so its Actions logs are public. Renovate's logs name every repo it processes and their dependencies. **Only install the App on public repos.** Before adding a private repo, make this repo private.
 - **Actions minutes:** Actions minutes are free for public repos. If this repo becomes private, check usage under **Org settings → Billing** and reduce the run frequency in `renovate.yml` if needed. Fewer runs only slows down dashboard checkbox requests and security fixes; the weekly PRs still open on Mondays.
 - **Dependabot:** keep Dependabot **alerts** enabled (Renovate uses them for security PRs), but don't add `dependabot.yml` files, as Dependabot version updates would duplicate Renovate's PRs.
-- **Python repos using pip-tools** need extra settings in their `renovate.json`. See the developer guide.
+- **Python:** the shared preset assumes pip-tools, re-running pip-compile on any `*requirements*.txt` file with a pip-compile header. Repos with plain, hand-written requirements files need `"pip_requirements": { "enabled": true }` in their `renovate.json`. See the developer guide.
 - **Run length:** the App's token lasts one hour, and the job times out after 60 minutes. If runs start getting close to that as more repos are added, split the list across separate jobs or runs.
 
 ## Ownership
