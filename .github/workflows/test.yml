@@ -23,3 +23,16 @@ jobs:
 
       - name: Validate Renovate preset
         run: npx --yes --package renovate -- renovate-config-validator --strict --no-global default.json
+
+      # The manual-run dropdown in renovate.yml can't be built from repos.json,
+      # so check the two list the same repos.
+      - name: Check run dropdown matches repos.json
+        run: |
+          listed=$(jq -r '.[].repo | split("/")[1]' repos.json | sort)
+          dropdown=$(yq -r '.on.workflow_dispatch.inputs.repo.options[] | select(. != "all")' .github/workflows/renovate.yml | sort)
+          if [ "$listed" != "$dropdown" ]; then
+            echo "::error::The repo dropdown in renovate.yml doesn't match repos.json"
+            diff <(echo "$listed") <(echo "$dropdown") | sed 's/^</  only in repos.json:/; s/^>/  only in dropdown:/' | grep only || true
+            exit 1
+          fi
+          echo "Dropdown matches repos.json:"; echo "$listed"
